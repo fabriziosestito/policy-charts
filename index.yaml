@@ -1,5 +1,48 @@
 apiVersion: v1
 entries:
+  cel-policy:
+  - annotations:
+      artifacthub.io/repository: cel-policy
+      catalog.cattle.io/hidden: "true"
+      catalog.cattle.io/type: kubewarden-policy
+      catalog.cattle.io/ui-component: kubewarden
+      kubewarden/contextAwareResources: |
+        - apiVersion: v1
+          kind: Namespace
+      kubewarden/displayName: CEL Policy
+      kubewarden/mutation: "false"
+      kubewarden/registry: ghcr.io
+      kubewarden/repository: kubewarden/policies/cel-policy
+      kubewarden/resources: Any
+      kubewarden/rules: |
+        - apiGroups:
+          - ''
+          apiVersions:
+          - v1
+          resources:
+          - '*'
+          operations:
+          - CREATE
+          - UPDATE
+          - DELETE
+      kubewarden/tag: v1.2.1
+    apiVersion: v1
+    appVersion: 1.2.1
+    created: "2025-03-17T07:53:34.593461396Z"
+    description: A policy that evaluates CEL expressions
+    digest: 93fdad9995b9e36e5dc624cb79b15d56155b4c727ffa2d8e32ea31ad0dc44e0c
+    home: https://github.com/kubewarden/cel-policy
+    keywords:
+    - compliance
+    - CEL
+    - ValidatingAdmissionPolicy
+    - Common Expression Language
+    name: cel-policy
+    sources:
+    - ghcr.io/kubewarden/policies/cel-policy:v1.2.1
+    urls:
+    - https://github.com/fabriziosestito/policy-charts/releases/download/cel-policy-1.2.1/cel-policy-1.2.1.tgz
+    version: 1.2.1
   ingress-unique-host:
   - annotations:
       artifacthub.io/repository: unique-ingress-policy
@@ -111,4 +154,4 @@ entries:
     urls:
     - https://github.com/fabriziosestito/policy-charts/releases/download/verify-image-signatures-0.3.0/verify-image-signatures-0.3.0.tgz
     version: 0.3.0
-generated: "2025-03-17T06:41:08.205574206Z"
+generated: "2025-03-17T07:53:34.593470954Z"
