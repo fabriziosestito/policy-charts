@@ -27,7 +27,7 @@ jobs:
 
     steps:
       - name: Checkout current repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
 
       - name: Extract repository info
         id: repo-info
@@ -43,14 +43,14 @@ jobs:
           fi
 
       - name: Clone source repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: ${{ steps.repo-info.outputs.owner }}/${{ steps.repo-info.outputs.repo }}
           ref: ${{ steps.repo-info.outputs.tag }}
           path: policy-source
 
       - name: Setup Go
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@f111f3307d8850f501ac008e886eec1fd1932a34
         with:
           go-version: "1.24"
 
@@ -90,7 +90,7 @@ jobs:
             --output ../$TARGET_DIR/Chart.yaml
 
       - name: Create Pull Request
-        uses: peter-evans/create-pull-request@v5
+        uses: peter-evans/create-pull-request@271a8d0340265f705b14b6d32b9829c1cb33d45e
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           title: "chore: update policy ${{ steps.repo-info.outputs.repo }} to ${{ steps.repo-info.outputs.tag }}"
