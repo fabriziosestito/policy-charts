@@ -89,8 +89,6 @@ jobs:
             --repo ../policy-source/artifacthub-repo.yml \
             --output ../$TARGET_DIR/Chart.yaml
 
-          cd ..
-
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v5
         with:
