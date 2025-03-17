@@ -3,8 +3,12 @@ name: Release Policy
 on:
   workflow_dispatch:
     inputs:
-      repository:
-        description: "Repository of the policy to be released (format: owner/repo)"
+      owner:
+        description: "Owner of the repository of the policy"
+        required: true
+        type: string
+      repo:
+        description: "Repository of the policy"
         required: true
         type: string
       tag:
@@ -29,13 +33,14 @@ jobs:
         id: repo-info
         run: |
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            echo "repo=${{ github.event.inputs.repository }}" >> $GITHUB_OUTPUT
+            echo "owner=${{ github.event.inputs.owner }}" >> $GITHUB_OUTPUT
+            echo "repo=${{ github.event.inputs.repo }}" >> $GITHUB_OUTPUT
             echo "tag=${{ github.event.inputs.tag }}" >> $GITHUB_OUTPUT
           else
-            echo "repo=${{ github.event.client_payload.repository }}" >> $GITHUB_OUTPUT
+            echo "owner=${{ github.event.client_payload.owner }}" >> $GITHUB_OUTPUT
+            echo "repo=${{ github.event.client_payload.repo }}" >> $GITHUB_OUTPUT
             echo "tag=${{ github.event.client_payload.tag }}" >> $GITHUB_OUTPUT
           fi
-          echo "repo_name=$(echo ${{ github.event.inputs.repository || github.event.client_payload.repository }} | cut -d '/' -f 2)" >> $GITHUB_OUTPUT
 
       - name: Clone source repository
         uses: actions/checkout@v3
@@ -51,8 +56,7 @@ jobs:
 
       - name: Create directory structure
         run: |
-          REPO_NAME="${{ steps.repo-info.outputs.repo_name }}"
-          TARGET_DIR="charts/$REPO_NAME"
+          TARGET_DIR="charts/${{ steps.repo-info.outputs.repo }}"
           mkdir -p "$TARGET_DIR"
 
           if [ ! -f "policy-source/README.md" ]; then
@@ -76,8 +80,7 @@ jobs:
 
       - name: Generate Chart.yaml
         run: |
-          REPO_NAME="${{ steps.repo-info.outputs.repo_name }}"
-          TARGET_DIR="charts/$REPO_NAME"
+          TARGET_DIR="charts/${{ steps.repo-info.outputs.repo }}"
 
           cd pkg2chart
 
@@ -92,12 +95,12 @@ jobs:
         uses: peter-evans/create-pull-request@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          title: "Update policy to ${{ steps.repo-info.outputs.repo_name }} ${{ steps.repo-info.outputs.tag }}"
+          title: "chore: update policy ${{ steps.repo-info.outputs.repo }} to ${{ steps.repo-info.outputs.tag }}"
           body: |
-            Updates policy to ${{ steps.repo-info.outputs.repo_name }} ${{ steps.repo-info.outputs.tag }}
-          commit-message: "chore: update policy ${{ steps.repo-info.outputs.repo_name }} to ${{ steps.repo-info.outputs.tag }}"
+            Updates policy to ${{ steps.repo-info.outputs.repo }} ${{ steps.repo-info.outputs.tag }}
+          commit-message: "chore: update policy ${{ steps.repo-info.outputs.repo }} to ${{ steps.repo-info.outputs.tag }}"
           add-paths: |
             charts
-          branch: update-policy-${{ steps.repo-info.outputs.repo_name }}-${{ steps.repo-info.outputs.tag }}
+          branch: update-policy-${{ steps.repo-info.outputs.repo }}-${{ steps.repo-info.outputs.tag }}
           base: main
           delete-branch: true
