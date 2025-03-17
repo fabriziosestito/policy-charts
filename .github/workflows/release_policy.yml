@@ -4,11 +4,11 @@ on:
   workflow_dispatch:
     inputs:
       owner:
-        description: "Owner of the repository of the policy"
+        description: "Owner"
         required: true
         type: string
       repo:
-        description: "Repository of the policy"
+        description: "Repository"
         required: true
         type: string
       tag:
@@ -45,7 +45,7 @@ jobs:
       - name: Clone source repository
         uses: actions/checkout@v3
         with:
-          repository: ${{ steps.repo-info.outputs.repo }}
+          repository: ${{ steps.repo-info.outputs.owner }}/${{ steps.repo-info.outputs.repo }}
           ref: ${{ steps.repo-info.outputs.tag }}
           path: policy-source
 
