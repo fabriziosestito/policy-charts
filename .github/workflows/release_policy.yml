@@ -37,17 +37,6 @@ jobs:
           fi
           echo "repo_name=$(echo ${{ github.event.inputs.repository || github.event.client_payload.repository }} | cut -d '/' -f 2)" >> $GITHUB_OUTPUT
 
-      # - name: Set Git Author
-      #   id: git-author
-      #   run: |
-      #     if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-      #       echo "author_name=${{ github.actor }}" >> $GITHUB_OUTPUT
-      #       echo "author_email=${{ github.actor }}@users.noreply.github.com" >> $GITHUB_OUTPUT
-      #     else
-      #       echo "author_name=${{ github.event.client_payload.author_name || 'Release Policy Bot' }}" >> $GITHUB_OUTPUT
-      #       echo "author_email=${{ github.event.client_payload.author_email || 'bot@example.com' }}" >> $GITHUB_OUTPUT
-      #     fi
-
       - name: Clone source repository
         uses: actions/checkout@v3
         with:
@@ -107,6 +96,8 @@ jobs:
           body: |
             Updates policy to ${{ steps.repo-info.outputs.repo_name }} ${{ steps.repo-info.outputs.tag }}
           commit-message: "chore: update policy ${{ steps.repo-info.outputs.repo_name }} to ${{ steps.repo-info.outputs.tag }}"
+          add-paths: |
+            charts
           branch: update-policy-${{ steps.repo-info.outputs.repo_name }}-${{ steps.repo-info.outputs.tag }}
           base: main
           delete-branch: true
