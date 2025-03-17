@@ -1,0 +1,133 @@
+name: Release Policy
+
+on:
+  workflow_dispatch:
+    inputs:
+      repository:
+        description: "Repository of the policy to be released (format: owner/repo)"
+        required: true
+        type: string
+      tag:
+        description: "Tag to release"
+        required: true
+        type: string
+  repository_dispatch:
+    types: [release-policy]
+
+jobs:
+  release-policy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout current repository
+        uses: actions/checkout@v3
+
+      - name: Extract repository info
+        id: repo-info
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "repo=${{ github.event.inputs.repository }}" >> $GITHUB_OUTPUT
+            echo "tag=${{ github.event.inputs.tag }}" >> $GITHUB_OUTPUT
+          else
+            echo "repo=${{ github.event.client_payload.repository }}" >> $GITHUB_OUTPUT
+            echo "tag=${{ github.event.client_payload.tag }}" >> $GITHUB_OUTPUT
+          fi
+          echo "repo_name=$(echo ${{ github.event.inputs.repository || github.event.client_payload.repository }} | cut -d '/' -f 2)" >> $GITHUB_OUTPUT
+
+      - name: Set Git Author
+        id: git-author
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "author_name=${{ github.actor }}" >> $GITHUB_OUTPUT
+            echo "author_email=${{ github.actor }}@users.noreply.github.com" >> $GITHUB_OUTPUT
+          else
+            echo "author_name=${{ github.event.client_payload.author_name || 'Release Policy Bot' }}" >> $GITHUB_OUTPUT
+            echo "author_email=${{ github.event.client_payload.author_email || 'bot@example.com' }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Clone source repository
+        uses: actions/checkout@v3
+        with:
+          repository: ${{ steps.repo-info.outputs.repo }}
+          ref: ${{ steps.repo-info.outputs.tag }}
+          path: policy-source
+
+      - name: Setup Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: "1.24"
+
+      - name: Create directory structure
+        run: |
+          REPO_NAME="${{ steps.repo-info.outputs.repo_name }}"
+          TARGET_DIR="charts/$REPO_NAME"
+          mkdir -p "$TARGET_DIR"
+
+          if [ ! -f "policy-source/README.md" ]; then
+            echo "::error::README.md file not found in the source repository"
+            exit 1
+          fi
+
+          if [ ! -f "policy-source/LICENSE" ]; then
+            echo "::error::LICENSE file not found in the source repository"
+            exit 1
+          fi
+
+          cp "policy-source/README.md" "$TARGET_DIR/"
+          cp "policy-source/LICENSE" "$TARGET_DIR/"
+
+          if [ -f "policy-source/questions-ui.yml" ]; then
+            cp "policy-source/questions-ui.yml" "$TARGET_DIR/questions.yaml"
+          else
+            echo "::warning::questions-ui.yml file not found in the source repository"
+          fi
+
+      - name: Generate Chart.yaml
+        run: |
+          REPO_NAME="${{ steps.repo-info.outputs.repo_name }}"
+          TARGET_DIR="charts/$REPO_NAME"
+
+          cd pkg2chart
+
+          go run main.go \
+            --pkg ../policy-source/artifacthub-pkg.yml \
+            --repo ../policy-source/artifacthub-repo.yml \
+            --output ../$TARGET_DIR/Chart.yaml
+
+          cd ..
+
+      - name: Create branch
+        run: |
+          git config --global user.name "${{ steps.git-author.outputs.author_name }}"
+          git config --global user.email "${{ steps.git-author.outputs.author_email }}"
+
+          BRANCH_NAME="update-policy-${{ steps.repo-info.outputs.repo_name }}-${{ steps.repo-info.outputs.tag }}"
+          BRANCH_NAME=$(echo $BRANCH_NAME | tr '/' '-')
+
+          git checkout -b $BRANCH_NAME
+
+      - name: Commit changes
+        run: |
+          git add charts/
+
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
+
+          git commit -s -m "chore: update policy ${{ steps.repo-info.outputs.repo_name }} to ${{ steps.repo-info.outputs.tag }}"
+          git push origin HEAD
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          title: "Update policy to ${{ steps.repo-info.outputs.repo_name }} ${{ steps.repo-info.outputs.tag }}"
+          body: |
+            Updates policy to ${{ steps.repo-info.outputs.repo_name }} ${{ steps.repo-info.outputs.tag }}
+          branch: update-policy-${{ steps.repo-info.outputs.repo_name }}-${{ steps.repo-info.outputs.tag }}
+          base: main
+          delete-branch: true
