@@ -98,9 +98,9 @@ jobs:
           cd pkg2chart
 
           go run main.go \
-            --pkg ../policy-source/$ARTIFACTHUB_PKG_PATH \
-            --repo ../policy-source/artifacthub-repo.yml \
-            --output ../$TARGET_DIR/Chart.yaml
+            --pkg "../policy-source/$ARTIFACTHUB_PKG_PATH" \
+            --repo "../policy-source/artifacthub-repo.yml" \
+            --output "../$TARGET_DIR/Chart.yaml"
 
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@271a8d0340265f705b14b6d32b9829c1cb33d45e # v7.0.8
