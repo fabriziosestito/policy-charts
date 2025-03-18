@@ -15,6 +15,11 @@ on:
         description: "Tag to release"
         required: true
         type: string
+      artifacthub_pkg_path:
+        description: "Path to the Artifact Hub package file"
+        required: true
+        default: "artifacthub-pkg.yml"
+        type: string
   repository_dispatch:
     types: [release-policy]
 
@@ -81,11 +86,12 @@ jobs:
       - name: Generate Chart.yaml
         run: |
           TARGET_DIR="charts/${{ steps.repo-info.outputs.repo }}"
+          ARTIFACTHUB_PKG_PATH="${{ github.event.inputs.artifacthub_pkg_path }}"
 
           cd pkg2chart
 
           go run main.go \
-            --pkg ../policy-source/artifacthub-pkg.yml \
+            --pkg ../policy-source/$ARTIFACTHUB_PKG_PATH \
             --repo ../policy-source/artifacthub-repo.yml \
             --output ../$TARGET_DIR/Chart.yaml
 
