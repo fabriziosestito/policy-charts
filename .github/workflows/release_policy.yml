@@ -15,10 +15,10 @@ on:
         description: "Tag to release"
         required: true
         type: string
-      artifacthub_pkg_path:
-        description: "Path to the Artifact Hub package file"
-        required: true
-        default: "artifacthub-pkg.yml"
+      policy_subdir:
+        description: "Subdirectory in the policy source containing README.md, questions-ui.yml, and artifacthub-pkg.yml"
+        required: false
+        default: ""
         type: string
       chart_dir:
         description: "Override the chart directory name (defaults to repo name if not provided)"
@@ -45,7 +45,7 @@ jobs:
             echo "owner=${{ github.event.inputs.owner }}" >> $GITHUB_OUTPUT
             echo "repo=${{ github.event.inputs.repo }}" >> $GITHUB_OUTPUT
             echo "tag=${{ github.event.inputs.tag }}" >> $GITHUB_OUTPUT
-            echo "artifacthub_pkg_path=${{ github.event.inputs.artifacthub_pkg_path }}" >> $GITHUB_OUTPUT
+            echo "policy_subdir=${{ github.event.inputs.policy_subdir }}" >> $GITHUB_OUTPUT
             
             if [[ -n "${{ github.event.inputs.chart_dir }}" ]]; then
               echo "chart_dir=${{ github.event.inputs.chart_dir }}" >> $GITHUB_OUTPUT
@@ -57,10 +57,10 @@ jobs:
             echo "repo=${{ github.event.client_payload.repo }}" >> $GITHUB_OUTPUT
             echo "tag=${{ github.event.client_payload.tag }}" >> $GITHUB_OUTPUT
 
-            if [[ -n "${{ github.event.client_payload.artifacthub_pkg_path }}" ]]; then
-              echo "artifacthub_pkg_path=${{ github.event.client_payload.artifacthub_pkg_path }}" >> $GITHUB_OUTPUT
+            if [[ -n "${{ github.event.client_payload.policy_subdir }}" ]]; then
+              echo "policy_subdir=${{ github.event.client_payload.policy_subdir }}" >> $GITHUB_OUTPUT
             else
-              echo "artifacthub_pkg_path=artifacthub-pkg.yml" >> $GITHUB_OUTPUT
+              echo "policy_subdir=" >> $GITHUB_OUTPUT
             fi
             
             if [[ -n "${{ github.event.client_payload.chart_dir }}" ]]; then
@@ -92,9 +92,17 @@ jobs:
       - name: Create directory structure
         run: |
           TARGET_DIR="charts/${{ steps.repo-info.outputs.chart_dir }}"
+          POLICY_SUBDIR="${{ steps.repo-info.outputs.policy_subdir }}"
+          SOURCE_DIR="policy-source"
+
+          # Append subdirectory if specified
+          if [[ -n "$POLICY_SUBDIR" ]]; then
+            SOURCE_DIR="$SOURCE_DIR/$POLICY_SUBDIR"
+          fi
+
           mkdir -p "$TARGET_DIR"
 
-          if [ ! -f "policy-source/README.md" ]; then
+          if [ ! -f "$SOURCE_DIR/README.md" ]; then
             echo "::error::README.md file not found in the source repository"
             exit 1
           fi
@@ -104,11 +112,11 @@ jobs:
             exit 1
           fi
 
-          cp "policy-source/README.md" "$TARGET_DIR/"
+          cp "$SOURCE_DIR/README.md" "$TARGET_DIR/"
           cp "policy-source/LICENSE" "$TARGET_DIR/"
 
-          if [ -f "policy-source/questions-ui.yml" ]; then
-            cp "policy-source/questions-ui.yml" "$TARGET_DIR/questions.yaml"
+          if [ -f "$SOURCE_DIR/questions-ui.yml" ]; then
+            cp "$SOURCE_DIR/questions-ui.yml" "$TARGET_DIR/questions.yaml"
           else
             echo "::notice::questions-ui.yml file not found in the source repository"
           fi
@@ -116,12 +124,18 @@ jobs:
       - name: Generate Chart.yaml
         run: |
           TARGET_DIR="charts/${{ steps.repo-info.outputs.chart_dir }}"
-          ARTIFACTHUB_PKG_PATH="${{ steps.repo-info.outputs.artifacthub_pkg_path }}"
+          POLICY_SUBDIR="${{ steps.repo-info.outputs.policy_subdir }}"
+          SOURCE_DIR="policy-source-artifacthub"
+
+          # Append subdirectory if specified
+          if [[ -n "$POLICY_SUBDIR" ]]; then
+            SOURCE_DIR="$SOURCE_DIR/$POLICY_SUBDIR"
+          fi
 
           cd pkg2chart
 
           go run main.go \
-            --pkg "../policy-source-artifacthub/$ARTIFACTHUB_PKG_PATH" \
+            --pkg "../$SOURCE_DIR/artifacthub-pkg.yml" \
             --repo "../policy-source/artifacthub-repo.yml" \
             --output "../$TARGET_DIR/Chart.yaml"
 
